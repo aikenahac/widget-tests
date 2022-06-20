@@ -1,105 +1,119 @@
-import React, { FC } from 'react';
-import {
-  SafeAreaView,
-  ScrollView,
-  StatusBar,
-  StyleSheet,
-  Text,
-  useColorScheme,
-  View,
-} from 'react-native';
+import React, { useEffect, useState } from "react";
+import { SafeAreaView, ScrollView, StyleSheet, Text, View } from "react-native";
 
-import {
-  Colors,
-  DebugInstructions,
-  Header,
-  LearnMoreLinks,
-  ReloadInstructions,
-} from 'react-native/Libraries/NewAppScreen';
-
-const Section: FC<{
-  title: string;
-}> = ({children, title}) => {
-  const isDarkMode = useColorScheme() === 'dark';
-  return (
-    <View style={styles.sectionContainer}>
-      <Text
-        style={[
-          styles.sectionTitle,
-          {
-            color: isDarkMode ? Colors.white : Colors.black,
-          },
-        ]}>
-        {title}
-      </Text>
-      <Text
-        style={[
-          styles.sectionDescription,
-          {
-            color: isDarkMode ? Colors.light : Colors.dark,
-          },
-        ]}>
-        {children}
-      </Text>
-    </View>
-  );
-};
+import axios from "axios";
+import { Checkbox } from "react-native-paper";
 
 const App = () => {
-  const isDarkMode = useColorScheme() === 'dark';
+    const apiUrl = "https://sl.aikenahac.com/api";
 
-  const backgroundStyle = {
-    backgroundColor: isDarkMode ? Colors.darker : Colors.lighter,
-  };
+    const [name, setName] = useState<string>();
+    const [items, setItems] = useState<Item[]>([]);
 
-  return (
-    <SafeAreaView style={backgroundStyle}>
-      <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
-      <ScrollView
-        contentInsetAdjustmentBehavior="automatic"
-        style={backgroundStyle}>
-        <Header />
-        <View
-          style={{
-            backgroundColor: isDarkMode ? Colors.black : Colors.white,
-          }}>
-          <Section title="Step One">
-            Edit <Text style={styles.highlight}>App.tsx</Text> to change this
-            screen and then come back to see your edits.
-          </Section>
-          <Section title="See Your Changes">
-            <ReloadInstructions />
-          </Section>
-          <Section title="Debug">
-            <DebugInstructions />
-          </Section>
-          <Section title="Learn More">
-            Read the docs to discover what to do next:
-          </Section>
-          <LearnMoreLinks />
-        </View>
-      </ScrollView>
-    </SafeAreaView>
-  );
+    useEffect(() => {
+        fetchName();
+        fetchItems();
+    }, []);
+
+    const fetchItems = async () => {
+        const resp = await axios.get<ItemsData>(`${apiUrl}/items`);
+
+        setItems(resp.data.data);
+    };
+
+    const fetchName = async () => {
+        const resp = await axios.get<{ data: FamilyNameData }>(
+            `${apiUrl}/family-name`,
+        );
+
+        setName(resp.data.data.attributes.name);
+    };
+
+    return (
+        <SafeAreaView style={styles.wrapper}>
+            <View style={styles.header}>
+                <Text style={styles.title}>{name}</Text>
+            </View>
+            <View style={{ height: 20 }} />
+            <ScrollView>
+                {items?.map((item: Item) => (
+                    <View key={item.id} style={styles.item}>
+                        <Text style={styles.itemText}>
+                            {item.attributes.name}
+                        </Text>
+                        <Checkbox
+                            status={
+                                item.attributes.bought ? "checked" : "unchecked"
+                            }
+                        />
+                    </View>
+                ))}
+            </ScrollView>
+        </SafeAreaView>
+    );
 };
 
 const styles = StyleSheet.create({
-  sectionContainer: {
-    marginTop: 32,
-    paddingHorizontal: 24,
-  },
-  sectionTitle: {
-    fontSize: 24,
-    fontWeight: '600',
-  },
-  sectionDescription: {
-    marginTop: 8,
-    fontSize: 18,
-    fontWeight: '400',
-  },
-  highlight: {
-    fontWeight: '700',
-  },
+    wrapper: {
+        flex: 1,
+        backgroundColor: "#232323",
+        paddingHorizontal: 16,
+    },
+
+    header: {
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+        paddingVertical: 12,
+    },
+
+    title: {
+        color: "white",
+        fontSize: 32,
+        fontWeight: "bold",
+    },
+
+    item: {
+        display: "flex",
+        flexDirection: "row",
+        justifyContent: "space-between",
+        alignItems: "center",
+    },
+
+    itemText: {
+        color: "white",
+    },
 });
+
+// Family name types
+// Endpoint: /family-name
+interface FNAttributes {
+    readonly name: string;
+    readonly createdAt: string;
+    readonly updatedAt: string;
+}
+
+interface FamilyNameData {
+    readonly id: number;
+    readonly attributes: FNAttributes;
+}
+
+// Item types
+// Endpoint: /items
+interface ItemAttributes {
+    readonly name: string;
+    readonly bought: boolean;
+    readonly createdAt: string;
+    readonly updatedAt: string;
+}
+
+interface Item {
+    readonly id: number;
+    readonly attributes: ItemAttributes;
+}
+
+interface ItemsData {
+    readonly data: Item[];
+}
 
 export default App;
